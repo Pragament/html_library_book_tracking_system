@@ -1,0 +1,1566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Library Book Tracker</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Import Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <!-- QR Scanner Library -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        /* Login Page */
+        .login-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+        }
+        
+        .login-box {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 40px;
+            width: 100%;
+            max-width: 450px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            color: #333;
+            text-align: center;
+        }
+        
+        .login-box h1 {
+            color: #1e3c72;
+            margin-bottom: 10px;
+            font-size: 2.2rem;
+        }
+        
+        .login-box p {
+            margin-bottom: 30px;
+            color: #666;
+        }
+        
+        .google-btn {
+            background-color: #4285F4;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 12px 20px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            transition: background-color 0.3s;
+        }
+        
+        .google-btn:hover {
+            background-color: #3367D6;
+        }
+        
+        /* Dashboard */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            border-bottom: 1px solid #e0e0e0;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            color: #1e3c72;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #1e3c72;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        
+        .logout-btn {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 8px 15px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        
+        .logout-btn:hover {
+            background-color: #c0392b;
+        }
+        
+        /* Dashboard Cards */
+        .dashboard-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card h3 {
+            margin-bottom: 15px;
+            color: #1e3c72;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .action-btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            background-color: #2a5298;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: background-color 0.3s;
+        }
+        
+        .action-btn:hover {
+            background-color: #1e3c72;
+        }
+        
+        .action-btn.secondary {
+            background-color: #3498db;
+        }
+        
+        .action-btn.secondary:hover {
+            background-color: #2980b9;
+        }
+        
+        .action-btn.return {
+            background-color: #e74c3c;
+        }
+        
+        .action-btn.return:hover {
+            background-color: #c0392b;
+        }
+        
+        /* Forms */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background-color: white;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 30px;
+            position: relative;
+        }
+        
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #777;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #444;
+        }
+        
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        
+        .form-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 15px;
+            margin-top: 25px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        
+        .btn-primary {
+            background-color: #2a5298;
+            color: white;
+        }
+        
+        .btn-secondary {
+            background-color: #7f8c8d;
+            color: white;
+        }
+        
+        .qr-scanner {
+            width: 100%;
+            height: 300px;
+            margin: 20px 0;
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f9f9f9;
+        }
+        
+        /* Reports Section */
+        .reports-section {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            margin-top: 30px;
+        }
+        
+        .filters {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .filters input, .filters select {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            color: #1e3c72;
+        }
+        
+        tr:hover {
+            background-color: #f9f9f9;
+        }
+        
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .status-borrowed {
+            background-color: #ffeaa7;
+            color: #d35400;
+        }
+        
+        .status-available {
+            background-color: #d1f7c4;
+            color: #27ae60;
+        }
+        
+        .status-overdue {
+            background-color: #ffcccc;
+            color: #e74c3c;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .dashboard-cards {
+                grid-template-columns: 1fr;
+            }
+            
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+            
+            .user-info {
+                align-self: flex-end;
+            }
+            
+            .modal-content {
+                width: 95%;
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Screen -->
+    <div id="login-container" class="login-container">
+        <div class="login-box">
+            <h1><i class="fas fa-book"></i> Library Tracker</h1>
+            <p>Manage book borrowing and returns with ease</p>
+            <button id="google-login" class="google-btn">
+                <i class="fab fa-google"></i> Sign in with Google
+            </button>
+        </div>
+    </div>
+    
+    <!-- Dashboard (Initially Hidden) -->
+    <div id="dashboard" class="container" style="display: none;">
+        <div class="header">
+            <h1><i class="fas fa-book-reader"></i> Library Dashboard</h1>
+            <div class="user-info">
+                <div class="user-avatar" id="user-avatar">U</div>
+                <span id="user-name">User</span>
+                <button id="logout-btn" class="logout-btn">Logout</button>
+            </div>
+        </div>
+        
+        <div class="dashboard-cards">
+            <!-- Quick Actions Card -->
+            <div class="card">
+                <h3><i class="fas fa-bolt"></i> Quick Actions</h3>
+                <div class="action-buttons">
+                    <button id="scan-book-btn" class="action-btn">
+                        <i class="fas fa-qrcode"></i> Scan Book QR Code
+                    </button>
+                    <button id="manual-entry-btn" class="action-btn secondary">
+                        <i class="fas fa-keyboard"></i> Enter Book Manually
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Borrow/Return Card -->
+            <div class="card">
+                <h3><i class="fas fa-exchange-alt"></i> Borrow / Return</h3>
+                <div class="action-buttons">
+                    <button id="borrow-btn" class="action-btn secondary">
+                        <i class="fas fa-hand-holding"></i> Borrow Book
+                    </button>
+                    <button id="return-btn" class="action-btn return">
+                        <i class="fas fa-undo-alt"></i> Return Book
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Stats Card -->
+            <div class="card">
+                <h3><i class="fas fa-chart-bar"></i> Library Stats</h3>
+                <div id="stats-container">
+                    <p>Loading statistics...</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Reports Section -->
+        <div class="reports-section">
+            <h2><i class="fas fa-file-alt"></i> Library Catalog</h2>
+            <div class="filters">
+                <input type="text" id="search-input" placeholder="Search books..." style="flex-grow: 1;">
+                <select id="status-filter">
+                    <option value="all">All Books</option>
+                    <option value="borrowed">Borrowed Only</option>
+                    <option value="available">Available Only</option>
+                    <option value="overdue">Overdue Only</option>
+                </select>
+                <button id="refresh-btn" class="btn btn-primary">Refresh</button>
+            </div>
+            
+            <div class="table-container">
+                <table id="books-table">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Author</th>
+                            <th>ISBN/ID</th>
+                            <th>Status</th>
+                            <th>Borrower</th>
+                            <th>Due Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="books-table-body">
+                        <tr>
+                            <td colspan="7" style="text-align: center;">Loading books...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Book Scan Modal -->
+    <div id="book-scan-modal" class="modal">
+        <div class="modal-content">
+            <button class="close-btn" id="close-book-scan">&times;</button>
+            <h2><i class="fas fa-qrcode"></i> Scan Book QR Code</h2>
+            <p>Position the book's QR code within the scanner frame</p>
+            <div id="qr-reader" class="qr-scanner"></div>
+            <p>Or enter book details manually:</p>
+            <div class="form-group">
+                <label for="manual-book-id">Book ID / ISBN</label>
+                <input type="text" id="manual-book-id" placeholder="Enter book ID or ISBN">
+            </div>
+            <div class="form-buttons">
+                <button id="cancel-book-scan" class="btn btn-secondary">Cancel</button>
+                <button id="confirm-book-id" class="btn btn-primary">Continue</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Action Selection Modal -->
+    <div id="action-modal" class="modal">
+        <div class="modal-content">
+            <button class="close-btn" id="close-action-modal">&times;</button>
+            <h2><i class="fas fa-question-circle"></i> Select Action</h2>
+            <p>What would you like to do with the book "<span id="selected-book-title">Unknown Book</span>"?</p>
+            <div class="action-buttons" style="margin-top: 30px;">
+                <button id="select-borrow-action" class="action-btn secondary" style="width: 100%;">
+                    <i class="fas fa-hand-holding"></i> Borrow This Book
+                </button>
+                <button id="select-return-action" class="action-btn return" style="width: 100%;">
+                    <i class="fas fa-undo-alt"></i> Return This Book
+                </button>
+            </div>
+            <div class="form-buttons">
+                <button id="cancel-action" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Borrower Scan Modal -->
+    <div id="borrower-scan-modal" class="modal">
+        <div class="modal-content">
+            <button class="close-btn" id="close-borrower-scan">&times;</button>
+            <h2><i class="fas fa-user"></i> Identify Borrower</h2>
+            <p>Scan the borrower's QR code or enter their details manually</p>
+            <div id="borrower-qr-reader" class="qr-scanner"></div>
+            <p>Or enter borrower details manually:</p>
+            <div class="form-group">
+                <label for="borrower-name">Borrower Name</label>
+                <input type="text" id="borrower-name" placeholder="Enter borrower name">
+            </div>
+            <div class="form-group">
+                <label for="borrower-class">Class/Department</label>
+                <input type="text" id="borrower-class" placeholder="Enter class or department">
+            </div>
+            <div class="form-group">
+                <label for="borrower-id">Borrower ID</label>
+                <input type="text" id="borrower-id" placeholder="Enter borrower ID">
+            </div>
+            <div class="form-buttons">
+                <button id="cancel-borrower-scan" class="btn btn-secondary">Cancel</button>
+                <button id="confirm-borrower" class="btn btn-primary">Confirm Borrower</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Borrow Form Modal -->
+    <div id="borrow-form-modal" class="modal">
+        <div class="modal-content">
+            <button class="close-btn" id="close-borrow-form">&times;</button>
+            <h2><i class="fas fa-hand-holding"></i> Borrow Book</h2>
+            <div id="borrow-form-details">
+                <!-- Book and borrower details will be populated here -->
+            </div>
+            <div class="form-group">
+                <label for="due-date">Due Date</label>
+                <input type="date" id="due-date">
+            </div>
+            <div class="form-buttons">
+                <button id="cancel-borrow-form" class="btn btn-secondary">Cancel</button>
+                <button id="confirm-borrow" class="btn btn-primary">Complete Borrow</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Return Form Modal -->
+    <div id="return-form-modal" class="modal">
+        <div class="modal-content">
+            <button class="close-btn" id="close-return-form">&times;</button>
+            <h2><i class="fas fa-undo-alt"></i> Return Book</h2>
+            <div id="return-form-details">
+                <!-- Book and borrower details will be populated here -->
+            </div>
+            <div class="form-group">
+                <label for="return-notes">Return Notes (optional)</label>
+                <input type="text" id="return-notes" placeholder="Any notes about the return condition">
+            </div>
+            <div class="form-buttons">
+                <button id="cancel-return-form" class="btn btn-secondary">Cancel</button>
+                <button id="confirm-return" class="btn btn-primary">Complete Return</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Manual Book Entry Modal -->
+    <div id="manual-entry-modal" class="modal">
+        <div class="modal-content">
+            <button class="close-btn" id="close-manual-entry">&times;</button>
+            <h2><i class="fas fa-keyboard"></i> Manual Book Entry</h2>
+            <p>Enter book details to search or add to catalog</p>
+            <div class="form-group">
+                <label for="book-title">Book Title *</label>
+                <input type="text" id="book-title" placeholder="Enter book title">
+            </div>
+            <div class="form-group">
+                <label for="book-author">Author</label>
+                <input type="text" id="book-author" placeholder="Enter author name">
+            </div>
+            <div class="form-group">
+                <label for="book-isbn">ISBN / Book ID *</label>
+                <input type="text" id="book-isbn" placeholder="Enter ISBN or book ID">
+            </div>
+            <div class="form-buttons">
+                <button id="cancel-manual-entry" class="btn btn-secondary">Cancel</button>
+                <button id="search-book" class="btn btn-primary">Search Book</button>
+                <button id="add-book" class="btn btn-primary" style="background-color: #27ae60;">Add to Catalog</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDEXAMPLEAPIKEYCHANGEINPRODUCTION",
+            authDomain: "library-tracker-app.firebaseapp.com",
+            projectId: "library-tracker-app",
+            storageBucket: "library-tracker-app.appspot.com",
+            messagingSenderId: "123456789012",
+            appId: "1:123456789012:web:abcdef1234567890"
+        };
+        
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        
+        // DOM Elements
+        const loginContainer = document.getElementById('login-container');
+        const dashboard = document.getElementById('dashboard');
+        const googleLoginBtn = document.getElementById('google-login');
+        const logoutBtn = document.getElementById('logout-btn');
+        const userAvatar = document.getElementById('user-avatar');
+        const userName = document.getElementById('user-name');
+        
+        // Modal elements
+        const bookScanModal = document.getElementById('book-scan-modal');
+        const actionModal = document.getElementById('action-modal');
+        const borrowerScanModal = document.getElementById('borrower-scan-modal');
+        const borrowFormModal = document.getElementById('borrow-form-modal');
+        const returnFormModal = document.getElementById('return-form-modal');
+        const manualEntryModal = document.getElementById('manual-entry-modal');
+        
+        // State variables
+        let currentUser = null;
+        let selectedBook = null;
+        let selectedBorrower = null;
+        let currentAction = null; // 'borrow' or 'return'
+        let qrScanner = null;
+        let borrowerQrScanner = null;
+        
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check auth state
+            auth.onAuthStateChanged(user => {
+                if (user) {
+                    // User is signed in
+                    currentUser = user;
+                    showDashboard();
+                    updateUserInfo();
+                    loadBooks();
+                    updateStats();
+                } else {
+                    // User is signed out
+                    showLogin();
+                }
+            });
+            
+            // Set up event listeners
+            setupEventListeners();
+            
+            // Set default due date to 2 weeks from now
+            const dueDateInput = document.getElementById('due-date');
+            const twoWeeksFromNow = new Date();
+            twoWeeksFromNow.setDate(twoWeeksFromNow.getDate() + 14);
+            dueDateInput.valueAsDate = twoWeeksFromNow;
+        });
+        
+        function setupEventListeners() {
+            // Auth buttons
+            googleLoginBtn.addEventListener('click', signInWithGoogle);
+            logoutBtn.addEventListener('click', signOut);
+            
+            // Dashboard action buttons
+            document.getElementById('scan-book-btn').addEventListener('click', openBookScanner);
+            document.getElementById('manual-entry-btn').addEventListener('click', openManualEntry);
+            document.getElementById('borrow-btn').addEventListener('click', () => startBorrowProcess());
+            document.getElementById('return-btn').addEventListener('click', () => startReturnProcess());
+            document.getElementById('refresh-btn').addEventListener('click', loadBooks);
+            
+            // Modal close buttons
+            document.getElementById('close-book-scan').addEventListener('click', closeBookScanner);
+            document.getElementById('close-action-modal').addEventListener('click', closeActionModal);
+            document.getElementById('close-borrower-scan').addEventListener('click', closeBorrowerScanner);
+            document.getElementById('close-borrow-form').addEventListener('click', closeBorrowForm);
+            document.getElementById('close-return-form').addEventListener('click', closeReturnForm);
+            document.getElementById('close-manual-entry').addEventListener('click', closeManualEntry);
+            
+            // Cancel buttons
+            document.getElementById('cancel-book-scan').addEventListener('click', closeBookScanner);
+            document.getElementById('cancel-action').addEventListener('click', closeActionModal);
+            document.getElementById('cancel-borrower-scan').addEventListener('click', closeBorrowerScanner);
+            document.getElementById('cancel-borrow-form').addEventListener('click', closeBorrowForm);
+            document.getElementById('cancel-return-form').addEventListener('click', closeReturnForm);
+            document.getElementById('cancel-manual-entry').addEventListener('click', closeManualEntry);
+            
+            // Confirm buttons
+            document.getElementById('confirm-book-id').addEventListener('click', confirmBookId);
+            document.getElementById('confirm-borrower').addEventListener('click', confirmBorrower);
+            document.getElementById('confirm-borrow').addEventListener('click', confirmBorrow);
+            document.getElementById('confirm-return').addEventListener('click', confirmReturn);
+            
+            // Action selection buttons
+            document.getElementById('select-borrow-action').addEventListener('click', () => selectAction('borrow'));
+            document.getElementById('select-return-action').addEventListener('click', () => selectAction('return'));
+            
+            // Manual entry buttons
+            document.getElementById('search-book').addEventListener('click', searchBook);
+            document.getElementById('add-book').addEventListener('click', addBookToCatalog);
+            
+            // Filter inputs
+            document.getElementById('search-input').addEventListener('input', filterBooks);
+            document.getElementById('status-filter').addEventListener('change', filterBooks);
+        }
+        
+        // Auth functions
+        function signInWithGoogle() {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            auth.signInWithPopup(provider)
+                .then((result) => {
+                    console.log('Signed in successfully:', result.user);
+                })
+                .catch((error) => {
+                    console.error('Error signing in:', error);
+                    alert('Error signing in: ' + error.message);
+                });
+        }
+        
+        function signOut() {
+            auth.signOut()
+                .then(() => {
+                    console.log('Signed out successfully');
+                })
+                .catch((error) => {
+                    console.error('Error signing out:', error);
+                });
+        }
+        
+        function showLogin() {
+            loginContainer.style.display = 'flex';
+            dashboard.style.display = 'none';
+        }
+        
+        function showDashboard() {
+            loginContainer.style.display = 'none';
+            dashboard.style.display = 'block';
+        }
+        
+        function updateUserInfo() {
+            if (currentUser) {
+                userName.textContent = currentUser.displayName || currentUser.email;
+                
+                // Set avatar with first letter of name
+                const displayName = currentUser.displayName || currentUser.email;
+                userAvatar.textContent = displayName.charAt(0).toUpperCase();
+                
+                // Set avatar color based on user
+                const colors = ['#1e3c72', '#2a5298', '#3498db', '#e74c3c', '#9b59b6', '#2ecc71'];
+                const colorIndex = displayName.length % colors.length;
+                userAvatar.style.backgroundColor = colors[colorIndex];
+            }
+        }
+        
+        // Book scanning functions
+        function openBookScanner() {
+            bookScanModal.style.display = 'flex';
+            
+            // Initialize QR scanner
+            if (!qrScanner) {
+                qrScanner = new Html5Qrcode("qr-reader");
+            }
+            
+            const qrScannerConfig = { fps: 10, qrbox: 250 };
+            
+            qrScanner.start(
+                { facingMode: "environment" },
+                qrScannerConfig,
+                onBookScanSuccess
+            ).catch(err => {
+                console.error("Unable to start QR scanner:", err);
+                document.getElementById('qr-reader').innerHTML = 
+                    '<p style="text-align: center; color: #777;"><i class="fas fa-exclamation-triangle"></i> QR Scanner not supported. Please enter book ID manually.</p>';
+            });
+        }
+        
+        function closeBookScanner() {
+            bookScanModal.style.display = 'none';
+            if (qrScanner && qrScanner.isScanning) {
+                qrScanner.stop();
+            }
+        }
+        
+        function onBookScanSuccess(decodedText) {
+            console.log('Scanned book QR code:', decodedText);
+            
+            // Try to parse the QR code data
+            let bookId = decodedText;
+            
+            // If the QR code contains a URL, try to extract the book ID from it
+            if (decodedText.includes('library.example.com/books/')) {
+                const match = decodedText.match(/books\/([^\/]+)/);
+                if (match) {
+                    bookId = match[1];
+                }
+            }
+            
+            document.getElementById('manual-book-id').value = bookId;
+            
+            // Stop scanning
+            if (qrScanner && qrScanner.isScanning) {
+                qrScanner.stop();
+            }
+            
+            // Automatically proceed to confirm the book ID
+            setTimeout(confirmBookId, 500);
+        }
+        
+        async function confirmBookId() {
+            const bookId = document.getElementById('manual-book-id').value.trim();
+            
+            if (!bookId) {
+                alert('Please enter a book ID or ISBN');
+                return;
+            }
+            
+            closeBookScanner();
+            
+            // Look up the book in Firestore
+            try {
+                const bookDoc = await db.collection('books').doc(bookId).get();
+                
+                if (bookDoc.exists) {
+                    // Book exists in catalog
+                    selectedBook = { id: bookDoc.id, ...bookDoc.data() };
+                    showActionSelection();
+                } else {
+                    // Book not found in catalog
+                    const response = confirm(`Book with ID "${bookId}" not found in catalog. Would you like to add it now?`);
+                    
+                    if (response) {
+                        // Open manual entry form with the ID pre-filled
+                        openManualEntry();
+                        document.getElementById('book-isbn').value = bookId;
+                        document.getElementById('book-title').focus();
+                    }
+                }
+            } catch (error) {
+                console.error('Error looking up book:', error);
+                alert('Error looking up book: ' + error.message);
+            }
+        }
+        
+        function showActionSelection() {
+            if (selectedBook) {
+                document.getElementById('selected-book-title').textContent = selectedBook.title || 'Unknown Book';
+                actionModal.style.display = 'flex';
+            }
+        }
+        
+        function closeActionModal() {
+            actionModal.style.display = 'none';
+            selectedBook = null;
+        }
+        
+        function selectAction(action) {
+            currentAction = action;
+            closeActionModal();
+            
+            if (action === 'borrow') {
+                openBorrowerScanner();
+            } else if (action === 'return') {
+                // For returns, we might not need borrower info if the book is already checked out
+                // Check if the book is currently borrowed
+                if (selectedBook.status === 'borrowed') {
+                    // Book is borrowed, proceed to return form
+                    openReturnForm();
+                } else {
+                    // Book is not borrowed, ask for borrower info anyway
+                    alert('This book is not currently marked as borrowed. Please check the book status.');
+                    openBorrowerScanner();
+                }
+            }
+        }
+        
+        // Borrower scanning functions
+        function openBorrowerScanner() {
+            borrowerScanModal.style.display = 'flex';
+            
+            // Initialize QR scanner for borrower
+            if (!borrowerQrScanner) {
+                borrowerQrScanner = new Html5Qrcode("borrower-qr-reader");
+            }
+            
+            const qrScannerConfig = { fps: 10, qrbox: 250 };
+            
+            borrowerQrScanner.start(
+                { facingMode: "user" },
+                qrScannerConfig,
+                onBorrowerScanSuccess
+            ).catch(err => {
+                console.error("Unable to start QR scanner:", err);
+                document.getElementById('borrower-qr-reader').innerHTML = 
+                    '<p style="text-align: center; color: #777;"><i class="fas fa-exclamation-triangle"></i> QR Scanner not supported. Please enter borrower details manually.</p>';
+            });
+        }
+        
+        function closeBorrowerScanner() {
+            borrowerScanModal.style.display = 'none';
+            if (borrowerQrScanner && borrowerQrScanner.isScanning) {
+                borrowerQrScanner.stop();
+            }
+        }
+        
+        function onBorrowerScanSuccess(decodedText) {
+            console.log('Scanned borrower QR code:', decodedText);
+            
+            // Try to parse the QR code data (could be JSON, or just an ID)
+            try {
+                const borrowerData = JSON.parse(decodedText);
+                // If it's valid JSON, populate the form
+                if (borrowerData.name) {
+                    document.getElementById('borrower-name').value = borrowerData.name;
+                }
+                if (borrowerData.class) {
+                    document.getElementById('borrower-class').value = borrowerData.class;
+                }
+                if (borrowerData.id) {
+                    document.getElementById('borrower-id').value = borrowerData.id;
+                }
+            } catch (e) {
+                // If not JSON, assume it's just an ID
+                document.getElementById('borrower-id').value = decodedText;
+            }
+            
+            // Stop scanning
+            if (borrowerQrScanner && borrowerQrScanner.isScanning) {
+                borrowerQrScanner.stop();
+            }
+        }
+        
+        function confirmBorrower() {
+            const name = document.getElementById('borrower-name').value.trim();
+            const borrowerClass = document.getElementById('borrower-class').value.trim();
+            const borrowerId = document.getElementById('borrower-id').value.trim();
+            
+            if (!name && !borrowerId) {
+                alert('Please enter at least a borrower name or ID');
+                return;
+            }
+            
+            selectedBorrower = {
+                name: name || 'Unknown',
+                class: borrowerClass || 'Not specified',
+                id: borrowerId || `temp-${Date.now()}`
+            };
+            
+            closeBorrowerScanner();
+            
+            // Reset form fields
+            document.getElementById('borrower-name').value = '';
+            document.getElementById('borrower-class').value = '';
+            document.getElementById('borrower-id').value = '';
+            
+            // Open appropriate form based on current action
+            if (currentAction === 'borrow') {
+                openBorrowForm();
+            } else if (currentAction === 'return') {
+                openReturnForm();
+            }
+        }
+        
+        // Borrow form functions
+        function openBorrowForm() {
+            if (!selectedBook || !selectedBorrower) {
+                alert('Missing book or borrower information');
+                return;
+            }
+            
+            // Populate form details
+            const detailsDiv = document.getElementById('borrow-form-details');
+            detailsDiv.innerHTML = `
+                <div class="form-group">
+                    <label>Book Details</label>
+                    <div style="background-color: #f8f9fa; padding: 10px; border-radius: 5px;">
+                        <strong>${selectedBook.title || 'Unknown Title'}</strong><br>
+                        ${selectedBook.author ? 'Author: ' + selectedBook.author + '<br>' : ''}
+                        ID: ${selectedBook.id}
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Borrower Details</label>
+                    <div style="background-color: #f8f9fa; padding: 10px; border-radius: 5px;">
+                        <strong>${selectedBorrower.name}</strong><br>
+                        ${selectedBorrower.class ? 'Class: ' + selectedBorrower.class + '<br>' : ''}
+                        ${selectedBorrower.id ? 'ID: ' + selectedBorrower.id : ''}
+                    </div>
+                </div>
+            `;
+            
+            borrowFormModal.style.display = 'flex';
+        }
+        
+        function closeBorrowForm() {
+            borrowFormModal.style.display = 'none';
+        }
+        
+        async function confirmBorrow() {
+            const dueDate = document.getElementById('due-date').value;
+            
+            if (!dueDate) {
+                alert('Please select a due date');
+                return;
+            }
+            
+            try {
+                // Update book status in Firestore
+                await db.collection('books').doc(selectedBook.id).update({
+                    status: 'borrowed',
+                    borrowerName: selectedBorrower.name,
+                    borrowerClass: selectedBorrower.class,
+                    borrowerId: selectedBorrower.id,
+                    borrowedDate: new Date().toISOString().split('T')[0],
+                    dueDate: dueDate,
+                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                // Create a transaction record
+                await db.collection('transactions').add({
+                    bookId: selectedBook.id,
+                    bookTitle: selectedBook.title,
+                    borrowerName: selectedBorrower.name,
+                    borrowerId: selectedBorrower.id,
+                    action: 'borrow',
+                    date: new Date().toISOString().split('T')[0],
+                    dueDate: dueDate,
+                    librarian: currentUser.displayName || currentUser.email,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                alert(`Book "${selectedBook.title}" has been borrowed by ${selectedBorrower.name}. Due date: ${dueDate}`);
+                
+                closeBorrowForm();
+                loadBooks();
+                updateStats();
+                
+                // Reset state
+                selectedBook = null;
+                selectedBorrower = null;
+                currentAction = null;
+                
+            } catch (error) {
+                console.error('Error borrowing book:', error);
+                alert('Error borrowing book: ' + error.message);
+            }
+        }
+        
+        // Return form functions
+        function openReturnForm() {
+            if (!selectedBook) {
+                alert('No book selected');
+                return;
+            }
+            
+            // Populate form details
+            const detailsDiv = document.getElementById('return-form-details');
+            
+            let borrowerInfo = '';
+            if (selectedBook.borrowerName) {
+                borrowerInfo = `
+                    <div class="form-group">
+                        <label>Borrower Details</label>
+                        <div style="background-color: #f8f9fa; padding: 10px; border-radius: 5px;">
+                            <strong>${selectedBook.borrowerName}</strong><br>
+                            ${selectedBook.borrowerClass ? 'Class: ' + selectedBook.borrowerClass + '<br>' : ''}
+                            ${selectedBook.borrowerId ? 'ID: ' + selectedBook.borrowerId : ''}
+                        </div>
+                    </div>
+                `;
+            } else if (selectedBorrower) {
+                borrowerInfo = `
+                    <div class="form-group">
+                        <label>Borrower Details (from scan)</label>
+                        <div style="background-color: #f8f9fa; padding: 10px; border-radius: 5px;">
+                            <strong>${selectedBorrower.name}</strong><br>
+                            ${selectedBorrower.class ? 'Class: ' + selectedBorrower.class + '<br>' : ''}
+                            ${selectedBorrower.id ? 'ID: ' + selectedBorrower.id : ''}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            detailsDiv.innerHTML = `
+                <div class="form-group">
+                    <label>Book Details</label>
+                    <div style="background-color: #f8f9fa; padding: 10px; border-radius: 5px;">
+                        <strong>${selectedBook.title || 'Unknown Title'}</strong><br>
+                        ${selectedBook.author ? 'Author: ' + selectedBook.author + '<br>' : ''}
+                        ID: ${selectedBook.id}<br>
+                        ${selectedBook.dueDate ? 'Due Date: ' + selectedBook.dueDate + '<br>' : ''}
+                        ${selectedBook.borrowedDate ? 'Borrowed Date: ' + selectedBook.borrowedDate : ''}
+                    </div>
+                </div>
+                ${borrowerInfo}
+            `;
+            
+            returnFormModal.style.display = 'flex';
+        }
+        
+        function closeReturnForm() {
+            returnFormModal.style.display = 'none';
+        }
+        
+        async function confirmReturn() {
+            const returnNotes = document.getElementById('return-notes').value;
+            
+            try {
+                // Update book status in Firestore
+                const updateData = {
+                    status: 'available',
+                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                
+                // Only clear borrower fields if they exist
+                if (selectedBook.borrowerName) {
+                    updateData.borrowerName = null;
+                    updateData.borrowerClass = null;
+                    updateData.borrowerId = null;
+                    updateData.borrowedDate = null;
+                    updateData.dueDate = null;
+                }
+                
+                await db.collection('books').doc(selectedBook.id).update(updateData);
+                
+                // Create a transaction record
+                await db.collection('transactions').add({
+                    bookId: selectedBook.id,
+                    bookTitle: selectedBook.title,
+                    borrowerName: selectedBook.borrowerName || selectedBorrower?.name || 'Unknown',
+                    borrowerId: selectedBook.borrowerId || selectedBorrower?.id || 'Unknown',
+                    action: 'return',
+                    date: new Date().toISOString().split('T')[0],
+                    notes: returnNotes,
+                    librarian: currentUser.displayName || currentUser.email,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                alert(`Book "${selectedBook.title}" has been returned.`);
+                
+                closeReturnForm();
+                loadBooks();
+                updateStats();
+                
+                // Reset state
+                selectedBook = null;
+                selectedBorrower = null;
+                currentAction = null;
+                document.getElementById('return-notes').value = '';
+                
+            } catch (error) {
+                console.error('Error returning book:', error);
+                alert('Error returning book: ' + error.message);
+            }
+        }
+        
+        // Manual entry functions
+        function openManualEntry() {
+            manualEntryModal.style.display = 'flex';
+        }
+        
+        function closeManualEntry() {
+            manualEntryModal.style.display = 'none';
+        }
+        
+        async function searchBook() {
+            const title = document.getElementById('book-title').value.trim();
+            const author = document.getElementById('book-author').value.trim();
+            const isbn = document.getElementById('book-isbn').value.trim();
+            
+            if (!title && !isbn) {
+                alert('Please enter at least a book title or ISBN to search');
+                return;
+            }
+            
+            // In a real app, you would search Firestore for matching books
+            // For now, we'll simulate a search
+            try {
+                let query = db.collection('books');
+                
+                if (title) {
+                    query = query.where('title', '>=', title).where('title', '<=', title + '\uf8ff');
+                }
+                
+                if (isbn) {
+                    query = query.where('id', '==', isbn);
+                }
+                
+                const snapshot = await query.limit(5).get();
+                
+                if (snapshot.empty) {
+                    alert('No books found matching your search criteria.');
+                    return;
+                }
+                
+                // For simplicity, just use the first match
+                const bookDoc = snapshot.docs[0];
+                selectedBook = { id: bookDoc.id, ...bookDoc.data() };
+                
+                closeManualEntry();
+                showActionSelection();
+                
+            } catch (error) {
+                console.error('Error searching for book:', error);
+                alert('Error searching for book: ' + error.message);
+            }
+        }
+        
+        async function addBookToCatalog() {
+            const title = document.getElementById('book-title').value.trim();
+            const author = document.getElementById('book-author').value.trim();
+            const isbn = document.getElementById('book-isbn').value.trim();
+            
+            if (!title || !isbn) {
+                alert('Please enter at least a book title and ISBN');
+                return;
+            }
+            
+            try {
+                // Check if book already exists
+                const bookDoc = await db.collection('books').doc(isbn).get();
+                
+                if (bookDoc.exists) {
+                    alert(`A book with ISBN/ID "${isbn}" already exists in the catalog.`);
+                    return;
+                }
+                
+                // Add new book to catalog
+                await db.collection('books').doc(isbn).set({
+                    title: title,
+                    author: author || 'Unknown',
+                    id: isbn,
+                    status: 'available',
+                    addedDate: new Date().toISOString().split('T')[0],
+                    addedBy: currentUser.displayName || currentUser.email,
+                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                alert(`Book "${title}" has been added to the catalog.`);
+                
+                closeManualEntry();
+                loadBooks();
+                updateStats();
+                
+                // Reset form
+                document.getElementById('book-title').value = '';
+                document.getElementById('book-author').value = '';
+                document.getElementById('book-isbn').value = '';
+                
+            } catch (error) {
+                console.error('Error adding book to catalog:', error);
+                alert('Error adding book to catalog: ' + error.message);
+            }
+        }
+        
+        // Start borrow/return process without scanning
+        function startBorrowProcess() {
+            currentAction = 'borrow';
+            openBorrowerScanner();
+        }
+        
+        function startReturnProcess() {
+            currentAction = 'return';
+            openBookScanner();
+        }
+        
+        // Book catalog functions
+        async function loadBooks() {
+            const tableBody = document.getElementById('books-table-body');
+            tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center;">Loading books...</td></tr>';
+            
+            try {
+                const snapshot = await db.collection('books').orderBy('title').get();
+                
+                if (snapshot.empty) {
+                    tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No books found in catalog.</td></tr>';
+                    return;
+                }
+                
+                tableBody.innerHTML = '';
+                snapshot.forEach(doc => {
+                    const book = { id: doc.id, ...doc.data() };
+                    const row = createBookTableRow(book);
+                    tableBody.appendChild(row);
+                });
+                
+                // Apply filters if any
+                filterBooks();
+                
+            } catch (error) {
+                console.error('Error loading books:', error);
+                tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #e74c3c;">Error loading books: ' + error.message + '</td></tr>';
+            }
+        }
+        
+        function createBookTableRow(book) {
+            const row = document.createElement('tr');
+            
+            // Determine status badge
+            let statusBadge = '';
+            let statusClass = '';
+            
+            if (book.status === 'borrowed') {
+                // Check if overdue
+                if (book.dueDate) {
+                    const dueDate = new Date(book.dueDate);
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    
+                    if (dueDate < today) {
+                        statusBadge = '<span class="status-badge status-overdue">Overdue</span>';
+                        statusClass = 'overdue';
+                    } else {
+                        statusBadge = '<span class="status-badge status-borrowed">Borrowed</span>';
+                        statusClass = 'borrowed';
+                    }
+                } else {
+                    statusBadge = '<span class="status-badge status-borrowed">Borrowed</span>';
+                    statusClass = 'borrowed';
+                }
+            } else {
+                statusBadge = '<span class="status-badge status-available">Available</span>';
+                statusClass = 'available';
+            }
+            
+            row.innerHTML = `
+                <td>${book.title || 'Unknown'}</td>
+                <td>${book.author || 'Unknown'}</td>
+                <td>${book.id}</td>
+                <td>${statusBadge}</td>
+                <td>${book.borrowerName || '-'}</td>
+                <td>${book.dueDate || '-'}</td>
+                <td>
+                    <button class="btn" style="padding: 5px 10px; font-size: 12px;" onclick="quickAction('${book.id}', '${statusClass}')">
+                        ${statusClass === 'borrowed' || statusClass === 'overdue' ? 'Return' : 'Borrow'}
+                    </button>
+                </td>
+            `;
+            
+            return row;
+        }
+        
+        function filterBooks() {
+            const searchTerm = document.getElementById('search-input').value.toLowerCase();
+            const statusFilter = document.getElementById('status-filter').value;
+            const rows = document.querySelectorAll('#books-table-body tr');
+            
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                const statusClass = row.querySelector('.status-badge')?.className || '';
+                
+                let matchesSearch = text.includes(searchTerm);
+                let matchesStatus = true;
+                
+                if (statusFilter !== 'all') {
+                    if (statusFilter === 'borrowed') {
+                        matchesStatus = statusClass.includes('status-borrowed') || statusClass.includes('status-overdue');
+                    } else if (statusFilter === 'available') {
+                        matchesStatus = statusClass.includes('status-available');
+                    } else if (statusFilter === 'overdue') {
+                        matchesStatus = statusClass.includes('status-overdue');
+                    }
+                }
+                
+                if (matchesSearch && matchesStatus) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+        
+        // Quick action from table
+        async function quickAction(bookId, currentStatus) {
+            try {
+                const bookDoc = await db.collection('books').doc(bookId).get();
+                
+                if (!bookDoc.exists) {
+                    alert('Book not found');
+                    return;
+                }
+                
+                selectedBook = { id: bookDoc.id, ...bookDoc.data() };
+                
+                if (currentStatus === 'borrowed' || currentStatus === 'overdue') {
+                    // Return the book
+                    currentAction = 'return';
+                    openReturnForm();
+                } else {
+                    // Borrow the book
+                    currentAction = 'borrow';
+                    openBorrowerScanner();
+                }
+                
+            } catch (error) {
+                console.error('Error with quick action:', error);
+                alert('Error: ' + error.message);
+            }
+        }
+        
+        // Statistics functions
+        async function updateStats() {
+            const statsContainer = document.getElementById('stats-container');
+            
+            try {
+                const booksSnapshot = await db.collection('books').get();
+                const totalBooks = booksSnapshot.size;
+                
+                let borrowedCount = 0;
+                let availableCount = 0;
+                let overdueCount = 0;
+                
+                booksSnapshot.forEach(doc => {
+                    const book = doc.data();
+                    
+                    if (book.status === 'borrowed') {
+                        borrowedCount++;
+                        
+                        // Check if overdue
+                        if (book.dueDate) {
+                            const dueDate = new Date(book.dueDate);
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                            
+                            if (dueDate < today) {
+                                overdueCount++;
+                            }
+                        }
+                    } else if (book.status === 'available') {
+                        availableCount++;
+                    }
+                });
+                
+                statsContainer.innerHTML = `
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div style="background-color: #f8f9fa; padding: 10px; border-radius: 5px;">
+                            <div style="font-size: 24px; font-weight: bold; color: #1e3c72;">${totalBooks}</div>
+                            <div style="font-size: 12px; color: #666;">Total Books</div>
+                        </div>
+                        <div style="background-color: #f8f9fa; padding: 10px; border-radius: 5px;">
+                            <div style="font-size: 24px; font-weight: bold; color: #27ae60;">${availableCount}</div>
+                            <div style="font-size: 12px; color: #666;">Available</div>
+                        </div>
+                        <div style="background-color: #f8f9fa; padding: 10px; border-radius: 5px;">
+                            <div style="font-size: 24px; font-weight: bold; color: #f39c12;">${borrowedCount}</div>
+                            <div style="font-size: 12px; color: #666;">Borrowed</div>
+                        </div>
+                        <div style="background-color: #f8f9fa; padding: 10px; border-radius: 5px;">
+                            <div style="font-size: 24px; font-weight: bold; color: #e74c3c;">${overdueCount}</div>
+                            <div style="font-size: 12px; color: #666;">Overdue</div>
+                        </div>
+                    </div>
+                `;
+                
+            } catch (error) {
+                console.error('Error loading stats:', error);
+                statsContainer.innerHTML = '<p style="color: #e74c3c;">Error loading statistics</p>';
+            }
+        }
+        
+        // Make quickAction function available globally
+        window.quickAction = quickAction;
+        
+        // Sample data initialization (for demonstration)
+        async function initializeSampleData() {
+            // Check if we need to add sample data
+            const snapshot = await db.collection('books').limit(1).get();
+            
+            if (snapshot.empty) {
+                console.log('Adding sample data to Firestore...');
+                
+                const sampleBooks = [
+                    {
+                        id: '978-0451524935',
+                        title: '1984',
+                        author: 'George Orwell',
+                        status: 'available',
+                        addedDate: '2023-01-15'
+                    },
+                    {
+                        id: '978-0061120084',
+                        title: 'To Kill a Mockingbird',
+                        author: 'Harper Lee',
+                        status: 'borrowed',
+                        borrowerName: 'John Smith',
+                        borrowerClass: '12A',
+                        borrowerId: 'S12345',
+                        borrowedDate: '2023-10-20',
+                        dueDate: '2023-11-03'
+                    },
+                    {
+                        id: '978-0141439518',
+                        title: 'Pride and Prejudice',
+                        author: 'Jane Austen',
+                        status: 'available',
+                        addedDate: '2023-02-10'
+                    },
+                    {
+                        id: '978-0743273565',
+                        title: 'The Great Gatsby',
+                        author: 'F. Scott Fitzgerald',
+                        status: 'borrowed',
+                        borrowerName: 'Emma Johnson',
+                        borrowerClass: '11B',
+                        borrowerId: 'S12346',
+                        borrowedDate: '2023-10-25',
+                        dueDate: '2023-11-08'
+                    },
+                    {
+                        id: '978-0547928227',
+                        title: 'The Hobbit',
+                        author: 'J.R.R. Tolkien',
+                        status: 'available',
+                        addedDate: '2023-03-05'
+                    }
+                ];
+                
+                // Add sample books to Firestore
+                for (const book of sampleBooks) {
+                    await db.collection('books').doc(book.id).set({
+                        ...book,
+                        addedBy: 'System',
+                        lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                }
+                
+                console.log('Sample data added successfully');
+                loadBooks();
+            }
+        }
+        
+        // Initialize sample data when user logs in (for demo purposes)
+        auth.onAuthStateChanged(async user => {
+            if (user) {
+                // Wait a moment for Firestore to initialize
+                setTimeout(initializeSampleData, 1000);
+            }
+        });
+    </script>
+</body>
+</html>
